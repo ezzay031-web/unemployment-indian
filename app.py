@@ -1,56 +1,40 @@
+import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 
-# Load dataset
-df = pd.read_csv("/content/Unemployment in India.csv")
+st.set_page_config(page_title="Unemployment Analysis", layout="wide")
 
-# Clean column names (important — spaces hoti hain)
-df.columns = df.columns.str.strip()
+st.title("📊 Unemployment Analysis in India")
 
-# Check data
-print(df.head())
-print(df.info())
+@st.cache_data
+def load_data():
+    df = pd.read_csv("Unemployment in India.csv")
+    df.columns = df.columns.str.strip()
+    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
+    df = df.dropna()
+    df['Year'] = df['Date'].dt.year
+    df['Month'] = df['Date'].dt.month
+    return df
 
-# Convert Date
-df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
+df = load_data()
 
-# Extract Year & Month
-df['Year'] = df['Date'].dt.year
-df['Month'] = df['Date'].dt.month
+st.sidebar.header("Filters")
 
-# Remove missing values
-df = df.dropna()
+year = st.sidebar.selectbox("Select Year", sorted(df['Year'].unique()))
+region = st.sidebar.selectbox("Select Region", sorted(df['Region'].unique()))
 
-# 📊 1. Overall unemployment trend
-plt.figure()
-df.groupby('Date')['Estimated Unemployment Rate (%)'].mean().plot()
-plt.title("Unemployment Rate Over Time (India)")
-plt.xlabel("Date")
-plt.ylabel("Unemployment Rate (%)")
-plt.show()
+filtered_df = df[(df['Year'] == year) & (df['Region'] == region)]
 
-# 📊 2. Year-wise trend
-plt.figure()
-df.groupby('Year')['Estimated Unemployment Rate (%)'].mean().plot(kind='bar')
-plt.title("Year-wise Unemployment Rate (India)")
-plt.xlabel("Year")
-plt.ylabel("Rate (%)")
-plt.show()
+st.subheader("📈 Unemployment Trend Over Time")
+st.line_chart(filtered_df.groupby('Date')['Estimated Unemployment Rate (%)'].mean())
 
-# 📊 3. COVID-19 Impact (2020)
-covid = df[df['Year'] == 2020]
+st.subheader("📊 Monthly Trend")
+st.bar_chart(filtered_df.groupby('Month')['Estimated Unemployment Rate (%)'].mean())
 
-plt.figure()
-covid.groupby('Month')['Estimated Unemployment Rate (%)'].mean().plot()
-plt.title("COVID-19 Impact on Unemployment (2020)")
-plt.xlabel("Month")
-plt.ylabel("Rate (%)")
-plt.show()
+st.subheader("🌍 Region-wise Unemployment")
+st.bar_chart(df.groupby('Region')['Estimated Unemployment Rate (%)'].mean())
 
-# 📊 4. State-wise unemployment
-plt.figure()
-df.groupby('Region')['Estimated Unemployment Rate (%)'].mean().sort_values().plot(kind='bar')
-plt.title("Unemployment by Region (India)")
-plt.xlabel("Region")
-plt.ylabel("Rate (%)")
-plt.show()
+st.subheader("📅 Year-wise Trend")
+st.line_chart(df.groupby('Year')['Estimated Unemployment Rate (%)'].mean())
+
+with st.expander("🔍 Raw Data"):
+    st.dataframe(df)
