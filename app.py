@@ -1,47 +1,26 @@
-import streamlit as st
+# UNEMPLOYMENT ANALYSIS
+
 import pandas as pd
-import os
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Unemployment Analysis", layout="wide")
+# Load dataset
+df = pd.read_csv("unemployment.csv")
 
-st.title("📊 Unemployment Analysis in India")
+# Clean
+df = df.dropna()
 
-# Load data safely
-@st.cache_data
-def load_data():
-    file_path = os.path.join(os.path.dirname(__file__), "Unemployment in India.csv")
-    df = pd.read_csv(file_path)
+# Convert date if exists
+if 'Date' in df.columns:
+    df['Date'] = pd.to_datetime(df['Date'])
 
-    df.columns = df.columns.str.strip()
-    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
-    df = df.dropna()
-    df['Year'] = df['Date'].dt.year
-    df['Month'] = df['Date'].dt.month
-    return df
+# Plot
+plt.figure()
+plt.plot(df['Date'], df['Unemployment_Rate'])
+plt.title("Unemployment Trend")
+plt.xlabel("Date")
+plt.ylabel("Rate")
+plt.show()
 
-df = load_data()
-
-# Sidebar filters
-st.sidebar.header("Filters")
-
-year = st.sidebar.selectbox("Select Year", sorted(df['Year'].unique()))
-region = st.sidebar.selectbox("Select Region", sorted(df['Region'].unique()))
-
-filtered = df[(df['Year'] == year) & (df['Region'] == region)]
-
-# Charts
-st.subheader("📈 Unemployment Trend Over Time")
-st.line_chart(filtered.groupby('Date')['Estimated Unemployment Rate (%)'].mean())
-
-st.subheader("📊 Monthly Trend")
-st.bar_chart(filtered.groupby('Month')['Estimated Unemployment Rate (%)'].mean())
-
-st.subheader("🌍 Region-wise Unemployment")
-st.bar_chart(df.groupby('Region')['Estimated Unemployment Rate (%)'].mean())
-
-st.subheader("📅 Year-wise Trend")
-st.line_chart(df.groupby('Year')['Estimated Unemployment Rate (%)'].mean())
-
-# Raw data
-with st.expander("🔍 View Raw Data"):
-    st.dataframe(df)
+# Insights
+print("Average Unemployment Rate:", df['Unemployment_Rate'].mean())
+print("Max Rate:", df['Unemployment_Rate'].max())
